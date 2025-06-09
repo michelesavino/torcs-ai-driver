@@ -1,0 +1,8 @@
+build/
+out/
+*.class
+*.pyc
+__pycache__/
+
+dataset/raw/
+logs/

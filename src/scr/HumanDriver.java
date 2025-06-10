@@ -30,7 +30,7 @@ public class HumanDriver extends Controller {
 
     public HumanDriver() {
         // Chiama il nuovo costruttore con 'true' per indicare che è in modalità training
-        this(true);
+        this(false);
     }
 
      public HumanDriver(boolean guidaAutonoma) {
@@ -123,7 +123,7 @@ public class HumanDriver extends Controller {
             currentAction.gear = 1;
         }
 
-        if (recordingEnabled && (sensors.getSpeed() > 1.0 || acceleratePressed || brakePressed || Math.abs(currentAction.steering) > 0.01)) {
+        if (isTrainingMode && recordingEnabled && (sensors.getSpeed() > 1.0 || acceleratePressed || brakePressed || Math.abs(currentAction.steering) > 0.01)) {
             if (writer != null) {
                 writer.writeLine(sensors, currentAction);
             }

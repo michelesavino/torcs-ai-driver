@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import javax.swing.SwingUtilities; 
 
 public class HumanDriver extends Controller {
 
@@ -21,21 +22,45 @@ public class HumanDriver extends Controller {
 
     private boolean recordingEnabled = true;
 
+    private boolean isTrainingMode = false;
+
     private static final double STEERING_DELTA = 0.1;
     private static final double ACCEL_BRAKE_DELTA = 0.1;
     private static final double STEERING_CENTER_THRESHOLD = 0.05;
 
     public HumanDriver() {
-        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String filename = "torcs_manual_data_" + timestamp + ".csv";
-        try {
-            this.writer = new DataWriter(filename);
-            System.out.println("Data writer inizializzato per: " + filename);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.err.println("Errore nell'inizializzazione del DataWriter per " + filename + ". La registrazione dei dati potrebbe non funzionare.");
-        }
+        // Chiama il nuovo costruttore con 'true' per indicare che è in modalità training
+        this(true);
+    }
+
+     public HumanDriver(boolean guidaAutonoma) {
+        // Se guidaAutonoma è false, significa che siamo in modalità "manuale" per la raccolta dati.
+        // Se guidaAutonoma è true, significa che siamo in modalità "AI" (che questo HumanDriver non supporta direttamente, ma potresti voler gestire)
+        this.isTrainingMode = !guidaAutonoma; // isTrainingMode è true se guidaAutonoma è false
+
         currentAction.gear = 1;
+
+        if (isTrainingMode) { // Se siamo in modalità di raccolta dati
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+            String filename = "torcs_manual_data_" + timestamp + ".csv";
+            try {
+                this.writer = new DataWriter(filename);
+                System.out.println("Data writer inizializzato per: " + filename);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.err.println("Errore nell'inizializzazione del DataWriter per " + filename + ". La registrazione dei dati potrebbe non funzionare.");
+            }
+            
+            // Avvia la finestra CharReader solo se siamo in modalità di training
+            // Il CharReader ora comunicherà con questa istanza di HumanDriver
+            SwingUtilities.invokeLater(() -> new CharReader(this)); // Usa CharReader per evitare conflitti e adattarlo
+        } else {
+            // Qui potresti gestire il caso in cui HumanDriver viene avviato in modalità AI,
+            // magari lanciando un errore o un messaggio.
+            System.out.println("HumanDriver avviato in modalità guida autonoma. Questo driver è destinato alla guida manuale e alla raccolta dati.");
+            // Potresti disabilitare la registrazione in modalità AI per evitare file vuoti o errori
+            this.recordingEnabled = false; 
+        }
     }
 
     @Override
@@ -65,10 +90,6 @@ public class HumanDriver extends Controller {
                 case 'e': currentAction.gear = Math.min(6, currentAction.gear + 1); break;
                 case 'q': currentAction.gear = Math.max(-1, currentAction.gear - 1); break;
 
-                case 'p':
-                    recordingEnabled = !recordingEnabled;
-                    System.out.println("Registrazione dati: " + (recordingEnabled ? "ATTIVA" : "DISATTIVA"));
-                    break;
             }
         }
 
@@ -109,6 +130,20 @@ public class HumanDriver extends Controller {
         }
 
         return currentAction;
+    }
+
+    // Metodi per CharReader (ora prenderanno un HumanDriver)
+    public void setRecordingEnabled(boolean enabled) {
+        this.recordingEnabled = enabled;
+        System.out.println("Registrazione dati: " + (enabled ? "ATTIVA" : "DISATTIVA"));
+    }
+
+    public boolean isRecordingEnabled() {
+        return this.recordingEnabled;
+    }
+
+    public void enqueueKeyboardInput(char ch) {
+        keyboardInputQueue.offer(ch);
     }
 
     @Override

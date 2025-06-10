@@ -198,7 +198,7 @@ public class SimpleDriver extends Controller {
 			// if not stuck reset stuck counter
 			stuck = 0;
 		}
-
+		Action action = new Action();
 		// Applicare la polizza di recupero o meno in base al tempo trascorso
 		/**
 		Se "stuck" è superiore a 25 (stuckTime) allora procedi a entrare in situaizone di RECOVERY
@@ -222,7 +222,6 @@ public class SimpleDriver extends Controller {
 			}
 			clutch = clutching(sensors, clutch);
 			// Costruire una variabile CarControl e restituirla
-			Action action = new Action();
 			action.gear = gear;
 			action.steering = steer;
 			action.accelerate = 1.0;
@@ -262,7 +261,6 @@ public class SimpleDriver extends Controller {
 			clutch = clutching(sensors, clutch);
 
 			// Costruire una variabile CarControl e restituirla
-			Action action = new Action();
 			action.gear = gear;
 			action.steering = steer;
 			action.accelerate = accel;
@@ -276,8 +274,8 @@ public class SimpleDriver extends Controller {
         // Aggiungi le features (input dei sensori)
         sb.append(sensors.getAngleToTrackAxis()).append(",");
         sb.append(sensors.getTrackPosition()).append(",");
-        sb.append(sensors.getSpeedX()).append(",");
-        sb.append(sensors.getSpeedY()).append(",");
+        sb.append(sensors.getSpeed()).append(","); //per la velocità complessiva
+        sb.append(sensors.getLateralSpeed()).append(","); //per la velocità laterale
         sb.append(sensors.getRPM()).append(",");
         
         // Aggiungi tutti i 19 sensori della pista

@@ -1,5 +1,10 @@
 package scr;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Arrays;
+
 public class SimpleDriver extends Controller {
 
 	/* Costanti di cambio marcia */
@@ -44,14 +49,53 @@ public class SimpleDriver extends Controller {
 	// current clutch
 	private float clutch = 0;
 
-	public void reset() {
-		System.out.println("Restarting the race!");
+	// VARIABILI AGGIUNTE PER LA RACCOLTA DATI
+    private PrintWriter dataWriter;
+    private boolean collectingData = true; // fase raccolta
+    private int dataCounter = 0; // contatore per il numero di righe scritte
 
-	}
+	 public SimpleDriver() {
+        if (collectingData) {
+            try {
+                // Il file verrà salvato nella directory da cui viene eseguito TORCS
+                dataWriter = new PrintWriter(new FileWriter("torcs_dataset.csv"));
+                
+                // INTESTAZIONE DEL CSV:
+                // ABBIAMO SCELTO QUESTE 24 FEATURES:
+                // angle, trackPos, speedX, speedY, rpm
+                // e i 19 trackSensors (track0 a track18)
+                // Poi i 4 TARGET: accel, brake, steering, gear
+                dataWriter.println("angle,trackPos,speedX,speedY,rpm," +
+                                   "track0,track1,track2,track3,track4,track5,track6,track7,track8,track9," +
+                                   "track10,track11,track12,track13,track14,track15,track16,track17,track18," +
+                                   "accel,brake,steering,gear");
+                System.out.println("Inizializzato il data writer per torcs_dataset.csv");
+            } catch (IOException e) {
+                System.err.println("Errore nell'inizializzazione del data writer: " + e.getMessage());
+                e.printStackTrace();
+                collectingData = false; // Disabilita la raccolta dati se c'è un errore
+            }
+        }
+    }
+
+	public void reset()  {
+        System.out.println("Restarting the race!");
+        stuck = 0; // Resetta il contatore "bloccato"
+        clutch = 0; // Resetta la frizione
+    }
+	
 
 	public void shutdown() {
-		System.out.println("Bye bye!");
-	}
+        System.out.println("Bye bye!");
+        if (dataWriter != null) {
+            try {
+                dataWriter.close(); // CHIUDE IL FILE CSV E SALVA I DATI
+                System.out.println("Dataset salvato su torcs_dataset.csv");
+            } catch (Exception e) {
+                System.err.println("Errore nella chiusura del data writer: " + e.getMessage());
+            }
+        }
+    }
 
 	private int getGear(SensorModel sensors) {
 		int gear = sensors.getGear();
@@ -224,9 +268,35 @@ public class SimpleDriver extends Controller {
 			action.accelerate = accel;
 			action.brake = brake;
 			action.clutch = clutch;
-			return action;
 		}
-	}
+		// Questa sezione deve accedere all'oggetto 'action' che contiene le decisioni di guida.
+    // Assicurati che 'action' sia stato popolato correttamente dai blocchi if/else sopra.
+    if (collectingData && dataWriter != null) {
+        StringBuilder sb = new StringBuilder();
+        // Aggiungi le features (input dei sensori)
+        sb.append(sensors.getAngleToTrackAxis()).append(",");
+        sb.append(sensors.getTrackPosition()).append(",");
+        sb.append(sensors.getSpeedX()).append(",");
+        sb.append(sensors.getSpeedY()).append(",");
+        sb.append(sensors.getRPM()).append(",");
+        
+        // Aggiungi tutti i 19 sensori della pista
+        for (double sensorValue : sensors.getTrackEdgeSensors()) {
+            sb.append(sensorValue).append(",");
+        }
+        
+        // Aggiungi i target (le azioni decise dal driver in questo istante)
+        sb.append(action.accelerate).append(",");
+        sb.append(action.brake).append(",");
+        sb.append(action.steering).append(",");
+        sb.append(action.gear); // L'ultima colonna non ha la virgola finale
+
+        dataWriter.println(sb.toString()); // Scrivi la riga nel CSV
+        dataCounter++; 
+    }
+
+    return action; // Questo deve essere l'UNICA istruzione return del metodo control.
+}
 
 	private float filterABS(SensorModel sensors, float brake) {
 		// Converte la velocità in m/s

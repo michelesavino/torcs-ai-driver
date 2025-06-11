@@ -5,22 +5,18 @@ import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
-// Ho rinominato la classe da ContinuousCharReaderUI a CharReader
 public class CharReader extends JFrame {
     private JTextField inputField;
-    // Riferimento al tuo HumanDriver per inviare gli input
+    // Riferimento per inviare gli input
     private final HumanDriver humanDriver;
 
-    // Il costruttore ora accetta un HumanDriver
+    // Il costruttore accetta un HumanDriver
     public CharReader(HumanDriver humanDriver) {
         this.humanDriver = humanDriver;
 
         // Set up the frame
         setTitle("TORCS Human Driver Input"); // Titolo più specifico per TORCS
         setSize(300, 100);
-        // NON chiamare setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        // perché vogliamo che sia il Client (o TORCS) a terminare l'applicazione,
-        // non la chiusura della finestra dell'input.
         setLayout(new FlowLayout());
 
         // Initialize the text field for input
@@ -33,7 +29,6 @@ public class CharReader extends JFrame {
             public void keyPressed(KeyEvent e) {
                 // Invia il carattere premuto alla coda del HumanDriver
                 humanDriver.enqueueKeyboardInput(e.getKeyChar());
-                // Non stampiamo qui, lo farà il driver se necessario.
             }
 
             @Override
@@ -63,7 +58,4 @@ public class CharReader extends JFrame {
         // Make the frame visible
         setVisible(true);
     }
-
-    // Rimuoviamo il main() da qui, il CharReader sarà lanciato dal HumanDriver
-    // quando necessario.
 }

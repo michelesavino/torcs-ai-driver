@@ -164,6 +164,16 @@ public class HumanDriver extends Controller {
         if (carActions.brake < 0.0) carActions.brake = 0.0;
     }
 
+    //retro
+    if (isReversing && !isAccelerating && !isBraking) {
+        carActions.accelerate = -1.0; // vado all'indietro a piena potenza
+        carActions.brake = 0.0;      // freno 0
+        // In questo caso, le marce vengono gestite da updateAutomaticGear()
+    } else if (!isReversing && carActions.accelerate < 0.0) {
+        // se non sto chiedendo retro ma l'accelerazione è ancora negativa, la azzero.
+        carActions.accelerate = 0.0;
+    }
+
         // Logica per Sterzo
         if (isTurningLeft) {
             carActions.steering += STEERING_INCREMENT_STEP;
@@ -199,8 +209,6 @@ public class HumanDriver extends Controller {
     // Se stiamo premendo il tasto x (quindi isReversing è vero)el a macchina è quasi ferma e non siamoiin retro
     if (isReversing && speed < SPEED_MAX_FOR_REVERSE && currentGear != -1) {
         carActions.gear = -1; // mettiamo retro.
-        carActions.accelerate = 0.0; // Azzeriamo l'acceleratore.
-        carActions.brake = 0.0;      // Azzeriamo il freno.
         return;
     }
 

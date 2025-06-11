@@ -21,6 +21,7 @@ public class HumanDriver extends Controller {
     private boolean isBraking = false; //frenare
     private boolean isTurningLeft = false; //giro a sinistra
     private boolean isTurningRight = false; //giro a destra
+    private boolean isReversing = false; //retro
 
     //marce
     private final int[] gearUp = { 5000, 6000, 6000, 6500, 7000, 0 }; 
@@ -96,16 +97,24 @@ public class HumanDriver extends Controller {
             // Tasti per accelerare,frenare, girare
                 isAccelerating = true;
                 isBraking = false; 
+                isReversing = false;
             } else if (keyChar == 's') {
                 isBraking = true;
                 isAccelerating = false;
+                isReversing = false;
             } else if (keyChar == 'a') {
                 isTurningLeft = true;
                 isTurningRight = false;
+                isReversing = false;
             } else if (keyChar == 'd') {
                 isTurningRight = true;
                 isTurningLeft = false;
-            }
+                isReversing = false;
+            } else if (keyChar == 'x') { 
+                isReversing = true;
+                isAccelerating = false;
+                isBraking = false;
+        }
 
             // Tasti rilasciati (maiuscoli): disattiviamo l'azione.
             // Questo permette alla macchina di rilasciare gradualmente acceleratore/freno/sterzo.
@@ -117,7 +126,8 @@ public class HumanDriver extends Controller {
                 isTurningLeft = false;
             } else if (keyChar == 'D') {
                 isTurningRight = false;
-            }
+            } else if (keyChar == 'X') { 
+                isReversing = false; }
             // Tasto 'p' per attivare/disattivare la registrazione
             else if (keyChar == 'p') {
                 setRecordingEnabled(!isRecordingEnabled());
@@ -136,12 +146,19 @@ public class HumanDriver extends Controller {
             carActions.accelerate += ACCEL_BRAKE_INCREMENT_STEP;
             // Se acceleriamo troppo, lo limitiamo a 1.0 (il massimo).
             if (carActions.accelerate > 1.0) carActions.accelerate = 1.0;
-            carActions.brake = 0.0; // Non possiamo accelerare e frenare allo stesso tempo.
-        } else if (isBraking) {
+            carActions.brake = 0.0;
+            } else {
+        // Se non stiamo accelerando, il valore scende gradualmente a zero.
+        carActions.accelerate -= ACCEL_BRAKE_INCREMENT_STEP;
+        if (carActions.accelerate < 0.0) carActions.accelerate = 0.0;}// Non possiamo accelerare e frenare allo stesso tempo.
+
+        // freno
+        if (isBraking) {
             carActions.brake += ACCEL_BRAKE_INCREMENT_STEP;
             // Se freniamo troppo, lo limitiamo a 1.0 (il massimo).
             if (carActions.brake > 1.0) carActions.brake = 1.0;
             carActions.accelerate = 0.0; // Non possiamo frenare e accelerare allo stesso tempo.
+            
         } else {
             // Se non stiamo accelerando né frenando, i valori scendono gradualmente a zero.
             carActions.accelerate -= ACCEL_BRAKE_INCREMENT_STEP;
@@ -178,36 +195,51 @@ public class HumanDriver extends Controller {
     }
 
     private void updateAutomaticGear(SensorModel sensors) {
-        int currentGear = carActions.gear;
-        double rpm = sensors.getRPM();
-        double speed = sensors.getSpeed();
+    // Otteniamo la marcia attuale, i giri del motore (RPM) e la velocità dai sensori della macchina.
+    int currentGear = carActions.gear;
+    double rpm = sensors.getRPM();
+    double speed = sensors.getSpeed();
 
-        // se non sto in sesta o retro e gli RPM sono superiori alla soglia definita per quella marcia e sto accelerando, salgo di marcia
+    // Se stiamo premendo il tasto x (quindi isReversing è vero)el a macchina è quasi ferma e non siamoiin retro
+    if (isReversing && speed < SPEED_MAX_FOR_REVERSE && currentGear != -1) {
+        carActions.gear = -1; // mettiamo retro.
+        carActions.accelerate = 0.0; // Azzeriamo l'acceleratore.
+        carActions.brake = 0.0;      // Azzeriamo il freno.
+        return;
+    }
+
+    // Se siamo in retro (currentGear è -1) e la macchina sta iniziando a muoversi in avanti (speed > 0.5)
+    // o abbiamo rilasciato x
+    if (currentGear == -1 && (speed > 0.5 || !isReversing)) {
+        carActions.gear = 0; // Passiamo alla folle.
+    }
+
+    // Se non sto in retro
+    if (currentGear >= 0 && !isReversing) {
+        // Se non sono in sesta e i giri del motore sono sopra e sto accelerando
         if (currentGear >= 1 && currentGear < 6 && rpm >= gearUp[currentGear - 1] && carActions.accelerate > 0) {
-            carActions.gear++;
-            // System.out.println("Cambiato in su a marcia: " + carActions.gear); // Puoi decommentare per debug
+            carActions.gear++; // salgo
         }
-        
-        // se non sto né in prima né in retro e gli RPM sono inferiori alla soglia per quella marcia, e non sto accelerando o frenando, scalo
-        if (currentGear > 1 && rpm <= gearDown[currentGear - 1] && carActions.accelerate <= 0) {
-            carActions.gear--;
-            // System.out.println("Cambiato in giù a marcia: " + carActions.gear); // Puoi decommentare per debug
-        }
-        
-        // Se la macchina è quasi ferma e si frena intensamente, e sono in folle, passa in retromarcia.
-        if (speed < SPEED_MAX_FOR_REVERSE && carActions.brake > 0.5 && carActions.gear == 0) {
-            carActions.gear = -1;
-        }
-        // invece se sto in retro e mi sto inziiando a muovere davanti, passo in prima
-        else if (currentGear == -1 && speed > 0.5) {
-            carActions.gear = 0;
-        
-        }
-        // se sono fermo e non sto accelerando e non sto in retro, metto la prima
-        else if (speed < MIN_SPEED_FOR_1ST_GEAR && carActions.accelerate == 0.0 && carActions.gear != -1) {
-            carActions.gear = 1;
+        // Se non sto in prima 
+        // E i giri del motore sono scesi e non sto accelerando e la velocità è superiore alla minima per la prima
+        else if (currentGear > 1 && rpm <= gearDown[currentGear - 1] && carActions.accelerate <= 0 && speed > MIN_SPEED_FOR_1ST_GEAR) {
+            carActions.gear--; // scalo di marcia.
         }
     }
+
+    if (!isReversing) {
+        // Se la macchina è quasi ferma (velocità molto bassa) e non sto accelerando o frenando o in retro
+        if (speed < MIN_SPEED_FOR_1ST_GEAR && carActions.accelerate == 0.0 && carActions.brake == 0.0 && currentGear != -1) {
+            if (currentGear != 1) { // Se non sto in prima
+                carActions.gear = 1; // passo in prima
+            }
+        }
+        //se la macchina è quasi ferma e non stiamo accelerando, frenando o in retro
+        else if (speed < SPEED_MAX_FOR_REVERSE && carActions.accelerate == 0.0 && carActions.brake == 0.0 && currentGear != -1 && currentGear != 0) {
+            carActions.gear = 0; // metto la folle.
+        }
+    }
+}
 
      // Questo metodo permette al CharReader di dire se dobbiamo registrare i dati o meno.
 

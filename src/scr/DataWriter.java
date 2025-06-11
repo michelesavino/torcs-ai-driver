@@ -5,7 +5,9 @@ package scr; // Stesso package degli altri tuoi driver
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays; // per facilitare la stampa degli array
+import java.text.SimpleDateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class DataWriter {
 
@@ -13,7 +15,12 @@ public class DataWriter {
     private boolean headerWritten = false; // per assicurarsi di scrivere l'intestazione solo una volta
 
     //creo csv
-    public DataWriter(String filename) throws IOException {
+    public DataWriter(String filenamePre)  throws IOException {
+        // Genera un nome di file unico usando la data e l'ora attuali.
+        // Il formato "yyyyMMdd_HHmmss" crea una stringa come "20250611_122325".
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String filename = filenamePre + "_" + timestamp + ".csv";
+        
         writer = new PrintWriter(new FileWriter(filename));
         System.out.println("File CSV aperto per scrittura: " + filename);
     }

@@ -1,8 +1,6 @@
 package scr;
 
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.swing.SwingUtilities; // Necessario per avviare la GUI in modo sicuro
 
@@ -23,6 +21,14 @@ public class HumanDriver extends Controller {
     private boolean isBraking = false; //frenare
     private boolean isTurningLeft = false; //giro a sinistra
     private boolean isTurningRight = false; //giro a destra
+
+    //marce
+    private final int[] gearUp = { 5000, 6000, 6000, 6500, 7000, 0 }; 
+    private final int[] gearDown = { 0, 2500, 3000, 3000, 3500, 3500 };
+    // Soglia di velocità sotto la quale consideriamo la macchina quasi ferma per la prima marcia
+    private static final double MIN_SPEED_FOR_1ST_GEAR = 5.0; 
+    // Soglia di velocità per la retromarcia (da usare solo quando la macchina è quasi ferma)
+    private static final double SPEED_MAX_FOR_REVERSE = 1.0; 
 
     // flag CHE ci permette di attivare o disattivare la registrazione dei dati.
     private boolean shouldRecordData = true;
@@ -67,10 +73,8 @@ public class HumanDriver extends Controller {
         // Traduciamo i tasti premuti in azioni (accelera ecc).
         updateCarControls();
 
-        // Se la macchina è ferma o quasi e non stiamo accelerando, mettiamo la prima.
-        if (sensors.getSpeed() < 5.0 && carActions.accelerate == 0.0 && carActions.gear == 0) {
-            carActions.gear = 1;
-        }
+        // metodo per la marcia automatica
+        updateAutomaticGear(sensors);
 
         // Se la registrazione è attiva e la macchina si sta muovendo (o stiamo dando input),
         // scriviamo i dati (sensori + azioni) nel nostro file CSV.
@@ -103,16 +107,8 @@ public class HumanDriver extends Controller {
                 isTurningLeft = false;
             }
 
-            // Tasti per cambiare marcia
-            else if (keyChar == 'r') {
-                carActions.gear = -1; // Retromarcia
-            } else if (keyChar == 'e') { // Marcia su solo se non siamo già in sesta.
-                if (carActions.gear < 6) carActions.gear++;
-            } else if (keyChar == 'q') { // Marcia giù solo se non siamo già in retromarcia.
-                if (carActions.gear > -1) carActions.gear--;
-            }
             // Tasti rilasciati (maiuscoli): disattiviamo l'azione.
-            // Questo permette alla macchina di "rilasciare" gradualmente acceleratore/freno/sterzo.
+            // Questo permette alla macchina di rilasciare gradualmente acceleratore/freno/sterzo.
             else if (keyChar == 'W') {
                 isAccelerating = false;
             } else if (keyChar == 'S') {
@@ -178,6 +174,38 @@ public class HumanDriver extends Controller {
             // Se lo sterzo è molto vicino allo zero, lo impostiamo a zero preciso.
                 carActions.steering = 0.0;
             }
+        }
+    }
+
+    private void updateAutomaticGear(SensorModel sensors) {
+        int currentGear = carActions.gear;
+        double rpm = sensors.getRPM();
+        double speed = sensors.getSpeed();
+
+        // se non sto in sesta o retro e gli RPM sono superiori alla soglia definita per quella marcia e sto accelerando, salgo di marcia
+        if (currentGear >= 1 && currentGear < 6 && rpm >= gearUp[currentGear - 1] && carActions.accelerate > 0) {
+            carActions.gear++;
+            // System.out.println("Cambiato in su a marcia: " + carActions.gear); // Puoi decommentare per debug
+        }
+        
+        // se non sto né in prima né in retro e gli RPM sono inferiori alla soglia per quella marcia, e non sto accelerando o frenando, scalo
+        if (currentGear > 1 && rpm <= gearDown[currentGear - 1] && carActions.accelerate <= 0) {
+            carActions.gear--;
+            // System.out.println("Cambiato in giù a marcia: " + carActions.gear); // Puoi decommentare per debug
+        }
+        
+        // Se la macchina è quasi ferma e si frena intensamente, e sono in folle, passa in retromarcia.
+        if (speed < SPEED_MAX_FOR_REVERSE && carActions.brake > 0.5 && carActions.gear == 0) {
+            carActions.gear = -1;
+        }
+        // invece se sto in retro e mi sto inziiando a muovere davanti, passo in prima
+        else if (currentGear == -1 && speed > 0.5) {
+            carActions.gear = 0;
+        
+        }
+        // se sono fermo e non sto accelerando e non sto in retro, metto la prima
+        else if (speed < MIN_SPEED_FOR_1ST_GEAR && carActions.accelerate == 0.0 && carActions.gear != -1) {
+            carActions.gear = 1;
         }
     }
 

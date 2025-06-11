@@ -90,50 +90,50 @@ public class HumanDriver extends Controller {
     //Legge i caratteri dalla coda della tastiera e aggiorna i nostri "interruttori" (isAccelerating, isTurningLeft, ecc.).
      
     private void handleKeyboardInputs() {
-        while (!keyboardInputQueue.isEmpty()) {
-            char keyChar = keyboardInputQueue.poll(); // Prendo il tasto dalla coda
+    while (!keyboardInputQueue.isEmpty()) {
+        char keyChar = keyboardInputQueue.poll(); // Prendo il tasto dalla coda
 
+        // --- Gestione tasti premuti (minuscoli) ---
         if (keyChar == 'w') {
-            // Tasti per accelerare,frenare, girare
-                isAccelerating = true;
-                isBraking = false; 
-                isReversing = false;
-            } else if (keyChar == 's') {
-                isBraking = true;
-                isAccelerating = false;
-                isReversing = false;
-            } else if (keyChar == 'a') {
-                isTurningLeft = true;
-                isTurningRight = false;
-                isReversing = false;
-            } else if (keyChar == 'd') {
-                isTurningRight = true;
-                isTurningLeft = false;
-                isReversing = false;
-            } else if (keyChar == 'x') { 
-                isReversing = true;
-                isAccelerating = false;
-                isBraking = false;
+            isAccelerating = true;
+            isBraking = false;     // Se accelero, non freno.
+            isReversing = false;   // Se accelero, non vado in retromarcia.
+        } else if (keyChar == 's') { // 's' ora per il freno
+            isBraking = true;
+            isAccelerating = false; // Se freno, non accelero.
+            isReversing = false;    // Se freno, non vado in retromarcia.
+        } else if (keyChar == 'x') { // 'x' ora per la retromarcia
+            isReversing = true;
+            isAccelerating = false; // Se vado in retromarcia, non accelero.
+            isBraking = false;      // Se vado in retromarcia, non freno.
+        } else if (keyChar == 'a') {
+            isTurningLeft = true;
+            isTurningRight = false; // Se giro a sinistra, non giro a destra.
+        } else if (keyChar == 'd') {
+            isTurningRight = true;
+            isTurningLeft = false;  // Se giro a destra, non giro a sinistra.
         }
-
-            // Tasti rilasciati (maiuscoli): disattiviamo l'azione.
-            // Questo permette alla macchina di rilasciare gradualmente acceleratore/freno/sterzo.
-            else if (keyChar == 'W') {
-                isAccelerating = false;
-            } else if (keyChar == 'S') {
-                isBraking = false;
-            } else if (keyChar == 'A') {
-                isTurningLeft = false;
-            } else if (keyChar == 'D') {
-                isTurningRight = false;
-            } else if (keyChar == 'X') { 
-                isReversing = false; }
-            // Tasto 'p' per attivare/disattivare la registrazione
-            else if (keyChar == 'p') {
-                setRecordingEnabled(!isRecordingEnabled());
-            }
+        
+        // --- Gestione tasti rilasciati (maiuscoli) ---
+        // Quando un tasto viene rilasciato, disattiviamo il suo "interruttore"
+        // Questo permette ai valori di accelerazione/freno/sterzo di diminuire gradualmente.
+        else if (keyChar == 'W') {
+            isAccelerating = false;
+        } else if (keyChar == 'S') { // 'S' rilascia il freno
+            isBraking = false;
+        } else if (keyChar == 'X') { // 'X' rilascia la retromarcia
+            isReversing = false;
+        } else if (keyChar == 'A') {
+            isTurningLeft = false;
+        } else if (keyChar == 'D') {
+            isTurningRight = false;
+        }
+        // Tasto 'p' per attivare/disattivare la registrazione dei dati
+        else if (keyChar == 'p') {
+            setRecordingEnabled(!isRecordingEnabled());
         }
     }
+}
 
     /**
      * Questa funzione prende lo stato dei nostri "interruttori" (isAccelerating, ecc.)
@@ -152,21 +152,17 @@ public class HumanDriver extends Controller {
         carActions.accelerate -= ACCEL_BRAKE_INCREMENT_STEP;
         if (carActions.accelerate < 0.0) carActions.accelerate = 0.0;}// Non possiamo accelerare e frenare allo stesso tempo.
 
-        // freno
-        if (isBraking) {
-            carActions.brake += ACCEL_BRAKE_INCREMENT_STEP;
-            // Se freniamo troppo, lo limitiamo a 1.0 (il massimo).
-            if (carActions.brake > 1.0) carActions.brake = 1.0;
-            carActions.accelerate = 0.0; // Non possiamo frenare e accelerare allo stesso tempo.
-            
-        } else {
-            // Se non stiamo accelerando né frenando, i valori scendono gradualmente a zero.
-            carActions.accelerate -= ACCEL_BRAKE_INCREMENT_STEP;
-            if (carActions.accelerate < 0.0) carActions.accelerate = 0.0;
-
-            carActions.brake -= ACCEL_BRAKE_INCREMENT_STEP;
-            if (carActions.brake < 0.0) carActions.brake = 0.0;
-        }
+        // Logica per Freno (attivato dal tasto 'S')
+    if (isBraking) {
+        carActions.brake += ACCEL_BRAKE_INCREMENT_STEP;
+        // Se freniamo troppo, lo limitiamo a 1.0 (il massimo).
+        if (carActions.brake > 1.0) carActions.brake = 1.0;
+        carActions.accelerate = 0.0; // Se freniamo, l'acceleratore è a zero.
+    } else {
+        // Se NON stiamo frenando, il valore del freno scende gradualmente a zero.
+        carActions.brake -= ACCEL_BRAKE_INCREMENT_STEP;
+        if (carActions.brake < 0.0) carActions.brake = 0.0;
+    }
 
         // Logica per Sterzo
         if (isTurningLeft) {

@@ -215,11 +215,11 @@ public class HumanDriver extends Controller {
     // Se siamo in retro (currentGear è -1) e la macchina sta iniziando a muoversi in avanti (speed > 0.5)
     // o abbiamo rilasciato x
     if (currentGear == -1 && (speed > 0.5 || !isReversing)) {
-        carActions.gear = 0; // Passiamo alla folle.
+        carActions.gear = 1; // Passiamo alla folle.
     }
 
     // Se non sto in retro
-    if (currentGear >= 0 && !isReversing) {
+    if (currentGear >= 1 && !isReversing) {
         // Se non sono in sesta e i giri del motore sono sopra e sto accelerando
         if (currentGear >= 1 && currentGear < 6 && rpm >= gearUp[currentGear - 1] && carActions.accelerate > 0) {
             carActions.gear++; // salgo
@@ -237,10 +237,6 @@ public class HumanDriver extends Controller {
             if (currentGear != 1) { // Se non sto in prima
                 carActions.gear = 1; // passo in prima
             }
-        }
-        //se la macchina è quasi ferma e non stiamo accelerando, frenando o in retro
-        else if (speed < SPEED_MAX_FOR_REVERSE && carActions.accelerate == 0.0 && carActions.brake == 0.0 && currentGear != -1 && currentGear != 0) {
-            carActions.gear = 0; // metto la folle.
         }
     }
 }

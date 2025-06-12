@@ -24,7 +24,7 @@ public class HumanDriver extends Controller {
     private boolean isReversing = false; //retro
 
     //marce
-    private final int[] gearUp = { 5000, 6000, 6000, 6500, 7000, 0 }; 
+    private final int[] gearUp = { 4500, 5500, 5500, 6000, 6500, 0 }; 
     private final int[] gearDown = { 0, 2500, 3000, 3000, 3500, 3500 };
     // Soglia di velocità sotto la quale consideriamo la macchina quasi ferma per la prima marcia
     private static final double MIN_SPEED_FOR_1ST_GEAR = 5.0; 
@@ -36,7 +36,7 @@ public class HumanDriver extends Controller {
 
     // Questi valori ci dicono di quanto "spostare" acceleratore/freno/sterzo ad ogni piccolo passo.
     private static final double STEERING_INCREMENT_STEP = 0.05; //quanto lo sterzo gira ad ogni pressione del tasto
-    private static final double ACCEL_BRAKE_INCREMENT_STEP = 0.05; //quanto accelera ad ogni pressione del tasto
+    private static final double ACCEL_BRAKE_INCREMENT_STEP = 0.1; //quanto accelera ad ogni pressione del tasto
     private static final double STEERING_CENTER_THRESHOLD = 0.03; // quanto sterzo deve essere vicino allo zero per essere dirtto
 
     //costruttore

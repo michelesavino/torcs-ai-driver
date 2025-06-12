@@ -9,7 +9,7 @@ import scr.Controller.Stage;
  * @author Daniele Loiacono (modificato per supportare HumanDriver e altri driver)
  *
  */
-public class Client {
+public class ClientManual {
 
     private static final int UDP_TIMEOUT = 10000;
     private static int port;

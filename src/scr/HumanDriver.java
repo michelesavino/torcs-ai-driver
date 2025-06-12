@@ -24,7 +24,7 @@ public class HumanDriver extends Controller {
     private boolean isReversing = false; //retro
 
     //marce
-    private final int[] gearUp = { 7000, 8000, 8500, 9000, 9500, 0 };
+	private final int[] gearUp = { 5000, 6000, 6000, 6500, 7000, 0 };
     private final int[] gearDown = { 0, 2500, 3000, 3000, 3500, 3500 };
     // Soglia di velocità sotto la quale consideriamo la macchina quasi ferma per la prima marcia
     private static final double MIN_SPEED_FOR_1ST_GEAR = 5.0; 
